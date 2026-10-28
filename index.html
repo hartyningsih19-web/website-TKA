@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pengumuman Hasil TKA — Portal Siswa</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b' },
+            gold: { 400:'#facc15', 500:'#eab308' }
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Pembuat PDF surat (file di repo yang sama) -->
+  <script src="surat-tka.js" defer></script>
+  <style>
+    body { -webkit-font-smoothing: antialiased; }
+    .hidden-el { display: none !important; }
+    .bg-pattern {
+      background-color: #064e3b;
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(16,185,129,.35) 0, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(234,179,8,.18) 0, transparent 40%);
+    }
+    .fade-in { animation: fadeIn .35s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .spinner { border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 9999px; width: 18px; height: 18px; animation: spin .7s linear infinite; display: inline-block; }
+    .spinner-dark { border-color: rgba(6,95,70,.2); border-top-color: #065f46; width: 40px; height: 40px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+<!-- ============================ LOGIN ============================ -->
+<section id="loginView" class="min-h-screen bg-pattern flex items-center justify-center px-4 py-10">
+  <div class="w-full max-w-md fade-in">
+    <div class="text-center text-white mb-6">
+      <p class="text-brand-200 text-xs font-semibold tracking-[0.2em] uppercase" data-cfg="SCHOOL_NAME_SHORT"></p>
+      <h1 class="text-2xl sm:text-3xl font-extrabold mt-1">Pengumuman Hasil TKA</h1>
+      <p class="text-brand-100/80 text-sm mt-1" data-cfg="EXAM_LABEL"></p>
+    </div>
+
+    <form id="loginForm" class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5" autocomplete="on" novalidate>
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Masuk Portal Siswa</h2>
+        <p class="text-sm text-slate-500">Gunakan NIS dan password dari kartu akun.</p>
+      </div>
+      <div id="loginError" class="hidden-el rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2.5"></div>
+
+      <label class="block">
+        <span class="text-sm font-semibold text-slate-700">NIS</span>
+        <input id="nis" name="username" type="text" inputmode="numeric" autocomplete="username" required
+               class="mt-1.5 w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Contoh: 0012301" />
+      </label>
+      <label class="block">
+        <span class="text-sm font-semibold text-slate-700">Password</span>
+        <div class="relative mt-1.5">
+          <input id="password" name="password" type="password" autocomplete="current-password" required
+                 class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="••••••••" />
+          <button type="button" id="togglePw" class="absolute inset-y-0 right-0 px-3.5 text-slate-400 hover:text-slate-600" aria-label="Tampilkan password">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </label>
+      <label class="flex items-start gap-2 text-sm text-slate-600 select-none">
+        <input id="remember" type="checkbox" class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+        <span>Ingat saya di perangkat ini <span class="text-slate-400">(jangan dicentang di komputer umum)</span></span>
+      </label>
+      <button id="loginBtn" type="submit" class="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold py-3 transition disabled:opacity-60">Masuk</button>
+      <p class="text-xs text-center text-slate-500">Lupa password? Hubungi wali kelas / panitia untuk reset password.</p>
+    </form>
+    <p class="text-center text-brand-100/70 text-xs mt-6" data-cfg="SCHOOL_NAME"></p>
+  </div>
+</section>
+
+<!-- ============================ DASHBOARD ============================ -->
+<section id="dashboardView" class="hidden-el min-h-screen">
+  <header class="bg-brand-800 text-white">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <p class="font-bold leading-tight truncate" data-cfg="SCHOOL_NAME"></p>
+        <p class="text-xs text-brand-200 leading-tight">Portal Hasil TKA</p>
+      </div>
+      <button id="logoutBtn" class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-2 text-sm font-semibold">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Keluar
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-5 fade-in">
+    <div id="pwWarning" class="hidden-el rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div class="flex-1">
+        <p class="font-bold text-amber-900">Anda masih memakai password bawaan</p>
+        <p class="text-sm text-amber-800">Segera ganti password agar nilai Anda tidak bisa dilihat orang lain.</p>
+      </div>
+      <button data-open-pw class="rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2">Ubah Password</button>
+    </div>
+
+    <!-- Identitas -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+      <p class="text-xs font-semibold text-brand-700 uppercase tracking-wider">Identitas Peserta</p>
+      <h2 id="stNama" class="text-2xl font-extrabold text-slate-900 mt-1"></h2>
+      <dl class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+        <div class="rounded-lg bg-slate-50 px-3 py-2"><dt class="text-slate-500 text-xs">NIS</dt><dd id="stNis" class="font-bold"></dd></div>
+        <div class="rounded-lg bg-slate-50 px-3 py-2"><dt class="text-slate-500 text-xs">Kelas</dt><dd id="stKelas" class="font-bold"></dd></div>
+        <div class="rounded-lg bg-slate-50 px-3 py-2 col-span-2 sm:col-span-1"><dt class="text-slate-500 text-xs">Angkatan</dt><dd class="font-bold" data-cfg="ANGKATAN"></dd></div>
+      </dl>
+    </div>
+
+    <div class="grid md:grid-cols-5 gap-5">
+      <!-- Nilai -->
+      <div class="md:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-semibold text-brand-700 uppercase tracking-wider">Hasil TKA per Mata Pelajaran</p>
+          <button id="refreshBtn" class="text-xs font-semibold text-slate-500 hover:text-brand-700 inline-flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M5.6 15A8 8 0 0019 17.3M18.4 9A8 8 0 005 6.7"/></svg>
+            Perbarui
+          </button>
+        </div>
+        <div class="mt-3 overflow-hidden rounded-xl border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+              <tr><th class="text-left px-3 py-2">Mata Pelajaran</th><th class="text-right px-3 py-2">Nilai</th><th class="text-left px-3 py-2">Kategori</th></tr>
+            </thead>
+            <tbody id="subjectBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="mt-3 rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 flex items-center justify-between">
+          <span class="font-bold text-brand-900">Total Nilai</span>
+          <span id="stTotal" class="text-2xl font-extrabold text-brand-800 tabular-nums"></span>
+        </div>
+      </div>
+
+      <!-- Peringkat -->
+      <div class="md:col-span-2 rounded-2xl shadow-sm p-5 sm:p-6 text-white bg-gradient-to-br from-brand-700 to-brand-900 relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10"></div>
+        <p class="text-xs font-semibold text-brand-200 uppercase tracking-wider relative">Peringkat Angkatan</p>
+        <div id="rankBox" class="relative mt-3"></div>
+        <p class="relative mt-4 text-xs text-brand-100/80">Demi privasi, Anda hanya dapat melihat posisi Anda sendiri. Daftar peringkat lengkap tidak dipublikasikan.</p>
+      </div>
+    </div>
+
+    <!-- Dokumen -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+      <p class="text-xs font-semibold text-brand-700 uppercase tracking-wider">Dokumen</p>
+      <div class="mt-3 grid sm:grid-cols-3 gap-3">
+        <button id="letterBtn" class="flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold text-white bg-brand-700 hover:bg-brand-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z"/><path d="M14 3v6h6M12 12v6m0 0l-3-3m3 3l3-3"/></svg>
+          <span>Download Surat Hasil TKA</span>
+        </button>
+        <button id="certBtn" class="flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold text-white bg-gold-500 hover:brightness-95 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          <span>Download Sertifikat Dinas</span>
+        </button>
+        <button data-open-pw class="flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+          Ubah Password
+        </button>
+      </div>
+      <ul id="docNotes" class="text-xs text-slate-500 mt-3 space-y-1"></ul>
+    </div>
+  </main>
+</section>
+
+<!-- ============================ MODAL UBAH PASSWORD ============================ -->
+<div id="pwModal" class="hidden-el fixed inset-0 z-40 bg-slate-900/60 flex items-end sm:items-center justify-center sm:p-4">
+  <form id="pwForm" class="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 space-y-4 fade-in" novalidate>
+    <div class="flex items-start justify-between">
+      <div>
+        <h3 class="text-lg font-bold">Ubah Password</h3>
+        <p class="text-sm text-slate-500">Minimal 6 karakter dan tidak sama dengan NIS.</p>
+      </div>
+      <button type="button" data-close-pw class="text-slate-400 hover:text-slate-600 text-2xl leading-none" aria-label="Tutup">&times;</button>
+    </div>
+    <div id="pwError" class="hidden-el rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2"></div>
+    <label class="block"><span class="text-sm font-semibold">Password lama</span>
+      <input id="oldPw" type="password" autocomplete="current-password" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" /></label>
+    <label class="block"><span class="text-sm font-semibold">Password baru</span>
+      <input id="newPw" type="password" autocomplete="new-password" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" /></label>
+    <label class="block"><span class="text-sm font-semibold">Ulangi password baru</span>
+      <input id="newPw2" type="password" autocomplete="new-password" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" /></label>
+    <label class="flex items-center gap-2 text-sm text-slate-600"><input id="showPwAll" type="checkbox" class="rounded text-brand-600" /> Tampilkan password</label>
+    <div class="flex gap-2 pt-1">
+      <button type="button" data-close-pw class="flex-1 rounded-xl bg-slate-100 hover:bg-slate-200 font-semibold py-2.5">Batal</button>
+      <button id="pwSubmit" type="submit" class="flex-1 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold py-2.5 flex items-center justify-center gap-2 disabled:opacity-60">Simpan</button>
+    </div>
+  </form>
+</div>
+
+<div id="loadingOverlay" class="hidden-el fixed inset-0 z-50 bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+  <div class="spinner spinner-dark"></div>
+  <p id="loadingText" class="text-sm font-semibold text-brand-800"></p>
+</div>
+<div id="toast" class="hidden-el fixed z-50 bottom-5 left-1/2 -translate-x-1/2 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white max-w-[90vw]"></div>
+
+<script>
+/* ============================================================================
+ *  KONFIGURASI — SESUAIKAN SEBELUM DIUNGGAH KE GITHUB PAGES
+ *  (Teks kop & isi surat diatur dari Portal Admin > Pengaturan Surat)
+ * ========================================================================== */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/GANTI_DENGAN_ID_DEPLOYMENT/exec',
+  SCHOOL_NAME: 'SMA IT Al-Ittihad Pekanbaru',
+  SCHOOL_NAME_SHORT: 'SMA IT Al-Ittihad',
+  EXAM_LABEL: 'Tes Kemampuan Akademik (TKA) 2026',
+  ANGKATAN: 'Kelas XII · 2026/2027',
+  JSPDF_URL: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+};
+
+/* ============================================================================
+ *  UTILITAS
+ * ========================================================================== */
+const $ = (id) => document.getElementById(id);
+const SESSION_KEY = 'tka_siswa_session_v2';
+const ASSET_KEY = 'tka_letter_assets_v2';
+const REFRESH_MIN_MS = 120000;   // data diperbarui di latar belakang maksimal tiap 2 menit
+let state = { token: null, profile: null, fetchedAt: 0 };
+
+const show = (el) => el.classList.remove('hidden-el');
+const hide = (el) => el.classList.add('hidden-el');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const fmt = (n) => (n === null || n === undefined || n === '' || isNaN(Number(n))) ? '—' : Number(n).toFixed(2);
+const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+let toastTimer;
+function toast(msg, type = 'success', ms = 3500) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'fixed z-50 bottom-5 left-1/2 -translate-x-1/2 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white max-w-[90vw] fade-in ' +
+    (type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-slate-800' : 'bg-brand-700');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => hide(t), ms);
+}
+function loading(on, text = '') { $('loadingText').textContent = text; on ? show($('loadingOverlay')) : hide($('loadingOverlay')); }
+function btnBusy(btn, on) {
+  if (on) { btn.dataset.html = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span><span>Memproses…</span>'; }
+  else { btn.disabled = false; if (btn.dataset.html) btn.innerHTML = btn.dataset.html; }
+}
+
+/**
+ * Pemanggilan API dengan percobaan ulang otomatis.
+ * Saat ratusan siswa membuka bersamaan, Apps Script kadang menolak sebagian permintaan;
+ * permintaan itu dicoba ulang dengan jeda acak yang makin panjang (exponential backoff + jitter).
+ */
+async function api(action, payload = {}, { retries = 4, timeout = 30000 } = {}) {
+  if (CONFIG.API_URL.includes('GANTI_DENGAN')) throw new Error('API_URL belum diatur di index.html.');
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      const wait = Math.min(8000, 700 * 2 ** (attempt - 1)) + Math.random() * 900;
+      toast(`Server sedang ramai, mencoba lagi (${attempt}/${retries})…`, 'info', wait + 1500);
+      await sleep(wait);
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const res = await fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, ...payload }),
+        redirect: 'follow',
+        signal: ctrl.signal
+      });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { throw new Error('RETRY'); }        // halaman error Google = server penuh
+      if (!json.ok && json.code === 'BUSY') throw new Error('RETRY');
+      if (!json.ok && json.code === 'SESSION_EXPIRED' && state.token) {
+        clearSession(); renderLogin(); toast('Sesi berakhir, silakan login kembali.', 'error');
+      }
+      return json;
+    } catch (e) {
+      lastErr = e;
+      if (e.message !== 'RETRY' && e.name !== 'AbortError' && e.name !== 'TypeError') throw e;
+    } finally { clearTimeout(timer); }
+  }
+  throw new Error(lastErr && lastErr.name === 'TypeError'
+    ? 'Tidak dapat terhubung. Periksa koneksi internet Anda.'
+    : 'Server sedang sangat ramai. Silakan coba beberapa menit lagi.');
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)?.dataset.loaded) return resolve();
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+    s.onerror = () => reject(new Error('Gagal memuat pustaka. Periksa koneksi internet.'));
+    document.head.appendChild(s);
+  });
+}
+
+/* ---------- Sesi ---------- */
+function storage() { return localStorage.getItem(SESSION_KEY) ? localStorage : sessionStorage; }
+function saveSession(remember) {
+  const data = JSON.stringify({ token: state.token, profile: state.profile, fetchedAt: state.fetchedAt, savedAt: Date.now() });
+  try {
+    (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, data);
+    (remember ? sessionStorage : localStorage).removeItem(SESSION_KEY);
+  } catch {}
+}
+function persistProfile() {
+  try {
+    const st = storage(), raw = st.getItem(SESSION_KEY);
+    if (raw) { const s = JSON.parse(raw); s.profile = state.profile; s.fetchedAt = state.fetchedAt; st.setItem(SESSION_KEY, JSON.stringify(s)); }
+  } catch {}
+}
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (Date.now() - (s.savedAt || 0) > 6 * 3600 * 1000) { clearSession(); return null; }
+    return s;
+  } catch { return null; }
+}
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(ASSET_KEY); } catch {}
+  state = { token: null, profile: null, fetchedAt: 0 };
+}
+
+/* ============================================================================
+ *  RENDER
+ * ========================================================================== */
+function applyConfigText() {
+  document.querySelectorAll('[data-cfg]').forEach((el) => { el.textContent = CONFIG[el.dataset.cfg] ?? ''; });
+  document.title = 'Pengumuman Hasil TKA — ' + CONFIG.SCHOOL_NAME_SHORT;
+}
+
+function renderLogin() {
+  hide($('dashboardView')); show($('loginView'));
+  $('password').value = '';
+  hide($('loginError'));
+}
+
+const KATEGORI_STYLE = {
+  istimewa: 'bg-emerald-100 text-emerald-800',
+  baik: 'bg-sky-100 text-sky-800',
+  memadai: 'bg-amber-100 text-amber-800',
+  kurang: 'bg-red-100 text-red-700'
+};
+
+function renderDashboard() {
+  const p = state.profile;
+  if (!p) return renderLogin();
+  hide($('loginView')); show($('dashboardView'));
+
+  $('stNama').textContent = p.nama;
+  $('stNis').textContent = p.nis;
+  $('stKelas').textContent = p.kelas || '—';
+  $('stTotal').textContent = fmt(p.total);
+  p.passwordIsDefault ? show($('pwWarning')) : hide($('pwWarning'));
+
+  $('subjectBody').innerHTML = (p.subjects || []).map((s) => `
+    <tr>
+      <td class="px-3 py-2.5 font-medium text-slate-700">${escapeHtml(s.mapel)}</td>
+      <td class="px-3 py-2.5 text-right font-bold text-slate-900 tabular-nums">${fmt(s.nilai)}</td>
+      <td class="px-3 py-2.5">${s.kategori
+        ? `<span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${KATEGORI_STYLE[String(s.kategori).toLowerCase()] || 'bg-slate-100 text-slate-700'}">${escapeHtml(s.kategori)}</span>`
+        : '<span class="text-slate-400">—</span>'}</td>
+    </tr>`).join('') || '<tr><td colspan="3" class="px-3 py-4 text-sm text-slate-500">Rincian nilai belum tersedia.</td></tr>';
+
+  if (p.ranking && p.totalPeserta) {
+    const top = Math.max(1, Math.ceil((p.ranking / p.totalPeserta) * 100));
+    const badge = p.ranking === 1 ? 'Peringkat tertinggi angkatan' : `Top ${top}% angkatan`;
+    $('rankBox').innerHTML = `
+      <div class="flex items-end gap-2">
+        <span class="text-6xl font-extrabold leading-none">${p.ranking}</span>
+        <span class="pb-1.5 text-brand-100">dari ${p.totalPeserta} siswa</span>
+      </div>
+      <p class="mt-2 font-semibold">Peringkat ${p.ranking} dari ${p.totalPeserta} siswa</p>
+      <span class="inline-block mt-2 rounded-full bg-gold-400 text-brand-900 text-xs font-bold px-3 py-1">${badge}</span>`;
+  } else {
+    $('rankBox').innerHTML = '<p class="text-lg font-semibold">Peringkat belum tersedia.</p>';
+  }
+
+  const notes = [];
+  const hasCert = !!p.certificateUrl;
+  $('certBtn').disabled = !hasCert;
+  if (!hasCert) notes.push('Sertifikat dinas belum tersedia. Tombol akan aktif setelah admin mengunggahnya.');
+  const canLetter = p.suratAktif && (p.subjects || []).length > 0;
+  $('letterBtn').disabled = !canLetter;
+  if (!p.suratAktif) notes.push('Surat hasil TKA belum dapat diunduh. Silakan cek kembali nanti.');
+  else notes.push('Surat hasil TKA berbentuk PDF dan dapat langsung dicetak.');
+  $('docNotes').innerHTML = notes.map((n) => `<li>• ${escapeHtml(n)}</li>`).join('');
+}
+
+/* ============================================================================
+ *  SURAT PDF (dibuat di browser — tidak membebani server)
+ * ========================================================================== */
+async function getLetterAssets() {
+  try { const c = sessionStorage.getItem(ASSET_KEY); if (c) return JSON.parse(c); } catch {}
+  const res = await api('getLetterAssets', { token: state.token });
+  if (!res.ok) throw new Error(res.error);
+  try { sessionStorage.setItem(ASSET_KEY, JSON.stringify(res.data)); } catch {}
+  return res.data;
+}
+
+async function downloadLetter() {
+  const btn = $('letterBtn');
+  btnBusy(btn, true);
+  try {
+    // Ambil data terbaru dulu (pengaturan surat bisa saja baru diubah admin)
+    const fresh = await api('getSiswaData', { token: state.token });
+    if (!fresh.ok) { if (fresh.code !== 'SESSION_EXPIRED') toast(fresh.error, 'error'); return; }
+    state.profile = fresh.data.profile; state.fetchedAt = Date.now(); persistProfile(); renderDashboard();
+    if (!state.profile.suratAktif) { toast('Surat hasil TKA belum dibuka oleh sekolah.', 'error'); return; }
+
+    const [assets] = await Promise.all([getLetterAssets(), loadScript(CONFIG.JSPDF_URL)]);
+    if (!window.SuratTKA) await loadScript('surat-tka.js');
+    const doc = window.SuratTKA.createLetterPdf(window.jspdf.jsPDF, state.profile, state.profile.letter, assets);
+    doc.save(window.SuratTKA.fileName(state.profile));
+    toast('Surat berhasil diunduh.');
+  } catch (e) {
+    toast(e.message || 'Gagal membuat surat.', 'error');
+  } finally {
+    btnBusy(btn, false);
+    $('letterBtn').disabled = !(state.profile && state.profile.suratAktif);
+  }
+}
+
+/* ============================================================================
+ *  EVENT
+ * ========================================================================== */
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nis = $('nis').value.trim(), password = $('password').value;
+  const err = $('loginError');
+  hide(err);
+  if (!nis || !password) { err.textContent = 'NIS dan password wajib diisi.'; show(err); return; }
+  const btn = $('loginBtn');
+  btnBusy(btn, true);
+  try {
+    const res = await api('loginSiswa', { nis, password });
+    if (!res.ok) { err.textContent = res.error; show(err); return; }
+    state.token = res.data.token; state.profile = res.data.profile; state.fetchedAt = Date.now();
+    saveSession($('remember').checked);
+    renderDashboard();
+    toast('Selamat datang, ' + state.profile.nama.split(' ')[0] + '!');
+  } catch (ex) {
+    err.textContent = ex.message; show(err);
+  } finally { btnBusy(btn, false); }
+});
+
+$('logoutBtn').addEventListener('click', () => {
+  clearSession(); renderLogin(); $('nis').value = '';
+  toast('Anda telah keluar.');
+});
+
+$('refreshBtn').addEventListener('click', async () => {
+  loading(true, 'Memuat data terbaru…');
+  try {
+    const res = await api('getSiswaData', { token: state.token });
+    if (res.ok) { state.profile = res.data.profile; state.fetchedAt = Date.now(); persistProfile(); renderDashboard(); toast('Data diperbarui.'); }
+    else if (res.code !== 'SESSION_EXPIRED') toast(res.error, 'error');
+  } catch (ex) { toast(ex.message, 'error'); }
+  finally { loading(false); }
+});
+
+$('certBtn').addEventListener('click', () => {
+  const url = state.profile && state.profile.certificateUrl;
+  if (url && /^https:\/\//i.test(url)) window.open(url, '_blank', 'noopener');
+});
+$('letterBtn').addEventListener('click', downloadLetter);
+
+/* ---------- Modal ubah password ---------- */
+function openPw() {
+  ['oldPw', 'newPw', 'newPw2'].forEach((id) => { $(id).value = ''; $(id).type = 'password'; });
+  $('showPwAll').checked = false;
+  hide($('pwError')); show($('pwModal'));
+  setTimeout(() => $('oldPw').focus(), 50);
+}
+const closePw = () => hide($('pwModal'));
+document.querySelectorAll('[data-open-pw]').forEach((b) => b.addEventListener('click', openPw));
+document.querySelectorAll('[data-close-pw]').forEach((b) => b.addEventListener('click', closePw));
+$('pwModal').addEventListener('click', (e) => { if (e.target.id === 'pwModal') closePw(); });
+$('showPwAll').addEventListener('change', (e) => { ['oldPw', 'newPw', 'newPw2'].forEach((id) => { $(id).type = e.target.checked ? 'text' : 'password'; }); });
+
+$('pwForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('pwError');
+  const oldPassword = $('oldPw').value, newPassword = $('newPw').value, confirmPw = $('newPw2').value;
+  const fail = (m) => { err.textContent = m; show(err); };
+  hide(err);
+  if (!oldPassword || !newPassword) return fail('Semua kolom wajib diisi.');
+  if (newPassword.length < 6) return fail('Password baru minimal 6 karakter.');
+  if (newPassword !== confirmPw) return fail('Konfirmasi password baru tidak sama.');
+  if (newPassword === state.profile.nis) return fail('Password tidak boleh sama dengan NIS.');
+  const btn = $('pwSubmit');
+  btnBusy(btn, true);
+  try {
+    const res = await api('changePasswordSiswa', { token: state.token, oldPassword, newPassword });
+    if (!res.ok) return fail(res.error);
+    state.profile.passwordIsDefault = false; persistProfile(); renderDashboard(); closePw();
+    toast('Password berhasil diubah. Gunakan password baru saat login berikutnya.');
+  } catch (ex) { fail(ex.message); }
+  finally { btnBusy(btn, false); }
+});
+
+$('togglePw').addEventListener('click', () => { const i = $('password'); i.type = i.type === 'password' ? 'text' : 'password'; });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePw(); });
+
+/* ============================================================================
+ *  INISIALISASI
+ * ========================================================================== */
+(function init() {
+  applyConfigText();
+  // NIS otomatis terisi saat siswa memindai QR code di kartu akun (?nis=...)
+  const qsNis = new URLSearchParams(location.search).get('nis');
+  if (qsNis) $('nis').value = qsNis.replace(/[^0-9A-Za-z.-]/g, '').slice(0, 30);
+
+  const s = loadSession();
+  if (s && s.token && s.profile) {
+    state = { token: s.token, profile: s.profile, fetchedAt: s.fetchedAt || 0 };
+    renderDashboard();
+    // Sinkron di latar belakang, dibatasi agar tidak membanjiri server saat halaman dimuat ulang
+    if (Date.now() - state.fetchedAt > REFRESH_MIN_MS) {
+      api('getSiswaData', { token: state.token }, { retries: 1 }).then((res) => {
+        if (res.ok) { state.profile = res.data.profile; state.fetchedAt = Date.now(); persistProfile(); renderDashboard(); }
+      }).catch(() => {});
+    }
+  } else {
+    renderLogin();
+    if (qsNis) setTimeout(() => $('password').focus(), 100);
+  }
+})();
+</script>
+</body>
+</html>
